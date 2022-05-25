@@ -1,0 +1,25 @@
+# assumes python 3.7.4 and wheel
+
+# install gw packages first (will determine latest version compatibility)
+lalsuite
+ligo.skymap
+# healpy
+# astropy
+
+# ml package dependencies are next priority (usually release faster than above)
+tensorflow==2.8
+tensorflow-probability
+tensorflow-datasets
+scikit-learn
+
+ipykernel
+pandas
+seaborn
+black
+
+# the following should be already installed as dependencies
+# tqdm
+# numpy
+# scipy
+# h5py
+# matplotlib
