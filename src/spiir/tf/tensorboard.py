@@ -1,9 +1,9 @@
-from io import BytesIO
-from matplotlib.pyplot import Figure
+import io
+import matplotlib.pyplot as plt
 import tensorflow as tf
 
 
-def figure_to_image(figure: Figure, fmt: str="png") -> tf.Tensor:
+def figure_to_image(figure: plt.Figure, fmt: str="png") -> tf.Tensor:
     """
     Converts the matplotlib plot specified by 'figure' to a PNG image and returns it.
     The supplied figure is closed and inaccessible after this call.
@@ -24,7 +24,7 @@ def figure_to_image(figure: Figure, fmt: str="png") -> tf.Tensor:
 
     """
     # save the plot to a PNG in memory.
-    buf = BytesIO()
+    buf = io.BytesIO()
     figure.savefig(buf, format=fmt)  # save figure to buffer in memory
     plt.close()  # prevent display on notebook
     buf.seek(0)
