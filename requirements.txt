@@ -1,8 +1,11 @@
 # assumes python 3.7.4 and wheel
 
-# install gw packages first (will determine latest version compatibility)
+# list gw packages first (will determine latest version compatibility)
 lalsuite
 ligo.skymap
+pycbc
+gwpy
+ligo-proxy-utils
 # healpy
 # astropy
 
