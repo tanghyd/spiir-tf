@@ -26,4 +26,4 @@ module load python3/7.4
 # activate virtual environment
 source /fred/oz016/dtang/spiir-tf/venv/bin/activate
 
-srun python train.py
+srun python train.py --n-epochs 25 --verbose --distribute
