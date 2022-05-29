@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 #SBATCH --job-name=tf-dist-test
-#SBATCH --time=01:00:00
+#SBATCH --time=00:30:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=2
@@ -21,9 +21,9 @@ module load gcc/9.2.0 openmpi/4.0.2
 module load cudnn/8.0.4-cuda-11.0.2
 module load nccl/2.9.6
 module load git/2.18.0
-module load python3/7.4
+module load python/3.7.4
 
 # activate virtual environment
 source /fred/oz016/dtang/spiir-tf/venv/bin/activate
 
-srun python train.py --n-epochs 25 --verbose --distribute
+srun python train.py --debug --distribute

@@ -8,7 +8,8 @@ from typing import Dict, Optional, Tuple, Union
 
 # https://stackoverflow.com/a/38645250
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"
-# os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
+os.environ["CUDA_DEVICE_ORDER"] = 'PCI_BUS_ID'
+os.environ["CUDA_VISIBLE_DEVICES"] = '0,1'
 
 import tensorflow as tf
 import tensorflow_datasets as tfds
@@ -204,7 +205,11 @@ if __name__ == "__main__":
         logger.debug(f"({i}) {device}")
 
     # define distribution strategy for multiple workers
-    strategy = tf.distribute.MirroredStrategy() if args.distribute else None
+    if args.distribute:
+        strategy = tf.distribute.MirroredStrategy()
+        logger.debug(f'Number of devices: {strategy.num_replicas_in_sync}')
+    else:
+        strategy = None
 
     # download dataset
     datasets, info = tfds.load(name="mnist", with_info=True, as_supervised=True, data_dir=args.data_dir)
