@@ -5,6 +5,7 @@ data/
 # example datasets
 share/examples/mnist/data/
 share/examples/mnist/*checkpoint*/
+share/examples/mnist/*logs*
 
 
 # other git repos
