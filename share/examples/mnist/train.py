@@ -70,28 +70,21 @@ def create_dataset(
     batch_size = batch_size_per_replica * num_replicas
 
     # process, shuffle, and batch training data
-    train_data = (
-        datasets["train"]
-        .map(scale)
-        .cache()
-        .shuffle(buffer)
-        .batch(batch_size)
-        .prefetch(tf.data.AUTOTUNE)
-    )
-    val_data = (
-        datasets["test"].map(scale).batch(batch_size).prefetch(tf.data.AUTOTUNE)
-    )
+    train_data = datasets["train"].map(scale).cache().shuffle(buffer).batch(batch_size).prefetch(tf.data.AUTOTUNE)
+    val_data = datasets["test"].map(scale).batch(batch_size).prefetch(tf.data.AUTOTUNE)
     return train_data, val_data
 
 
 def create_model(num_classes: int = 10):
-    return tf.keras.Sequential([
-        tf.keras.layers.Conv2D(32, 3, activation="relu", input_shape=(28, 28, 1)),
-        tf.keras.layers.MaxPooling2D(),
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(64, activation="relu"),
-        tf.keras.layers.Dense(num_classes)
-    ])
+    return tf.keras.Sequential(
+        [
+            tf.keras.layers.Conv2D(32, 3, activation="relu", input_shape=(28, 28, 1)),
+            tf.keras.layers.MaxPooling2D(),
+            tf.keras.layers.Flatten(),
+            tf.keras.layers.Dense(64, activation="relu"),
+            tf.keras.layers.Dense(num_classes),
+        ]
+    )
 
 
 def train(
@@ -119,16 +112,27 @@ def train(
             metrics=["accuracy"],
         )
 
-    # Define the checkpoint directory to store the checkpoints.
+    # define early stopping callback
+    early_stopping_callback = tf.keras.callbacks.EarlyStopping(
+        monitor="val_loss",
+        min_delta=1e-4,
+        patience=5,
+        verbose=verbose,
+    )
+    # define the checkpoint directory to store the checkpoints.
     checkpoint_dir = "./training_checkpoints"
-    checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
+    checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+        filepath=os.path.join(checkpoint_dir, "ckpt_{epoch}"),
+        save_weights_only=True,
+        verbose=verbose,
+    )
 
+    # combine callbacks
     callbacks = [
-        # tf.keras.callbacks.TensorBoard(log_dir='./logs'),
-        tf.keras.callbacks.ModelCheckpoint(
-            filepath=checkpoint_prefix, save_weights_only=True
-        ),
+        checkpoint_callback,
+        early_stopping_callback,
         tf.keras.callbacks.LearningRateScheduler(decay),
+        # tf.keras.callbacks.TensorBoard(log_dir='./logs'),
     ]
 
     history = model.fit(
@@ -146,7 +150,7 @@ if __name__ == "__main__":
         "-n",
         "--n-epochs",
         type=int,
-        default=12,
+        default=25,
         metavar="N",
         help="Number of training epochs",
     )
@@ -188,14 +192,11 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     console_log.setLevel(level=args.loglevel)  # logging console handler
-
     start_time = time.perf_counter()
 
     # check input types
     assert isinstance(args.n_epochs, int) and args.n_epochs > 0
-    assert (
-        isinstance(args.batch_size_per_replica, int) and args.batch_size_per_replica > 0
-    )
+    assert isinstance(args.batch_size_per_replica, int) and args.batch_size_per_replica > 0
 
     # check available GPU devices
     logger.debug("Available devices:")
@@ -206,23 +207,19 @@ if __name__ == "__main__":
     strategy = tf.distribute.MirroredStrategy() if args.distribute else None
 
     # download dataset
-    datasets, info = tfds.load(
-        name="mnist", with_info=True, as_supervised=True, data_dir=args.data_dir
-    )
+    datasets, info = tfds.load(name="mnist", with_info=True, as_supervised=True, data_dir=args.data_dir)
     num_classes = info.features["label"].num_classes
-    train_data, val_data = create_dataset(
-        args.batch_size_per_replica, datasets, strategy
-    )
+    train_data, val_data = create_dataset(args.batch_size_per_replica, datasets, strategy)
 
     # train model
     train(
-        args.n_epochs,
-        num_classes,
-        train_data,
-        val_data,
-        strategy,
+        n_epochs=args.n_epochs,
+        num_classes=num_classes,
+        train_data=train_data,
+        val_data=val_data,
+        strategy=strategy,
         verbose=convert_loglevel(args.loglevel),
     )
 
     duration = round(time.perf_counter() - start_time, 4)
-    logger.info(f"Training completed in {duration}s.")
+    logger.info(f"train.py completed in {duration}s.")
