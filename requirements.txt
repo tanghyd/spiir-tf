@@ -15,10 +15,19 @@ tensorflow-probability
 tensorflow-datasets
 scikit-learn
 
+
+# jupyter notebook featuers
 ipykernel
+ipywidgets
+jupyter
+
+# lint
+isort
+black
+
+# data
 pandas
 seaborn
-black
 
 # the following should be already installed as dependencies
 # tqdm

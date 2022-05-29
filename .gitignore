@@ -2,6 +2,11 @@
 notebooks/
 data/
 
+# example datasets
+share/examples/mnist/data/
+share/examples/mnist/*checkpoint*/
+
+
 # other git repos
 CBC-SkyNet/
 damon_cnn/
