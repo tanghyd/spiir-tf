@@ -12,7 +12,7 @@ We recommend installing Python in your working environment according to your use
 
 ### OzStar
 
-Below are the steps reproduce the installation of this TensorFlow ML HPC virtual environment on the OzStar system.
+Below are the steps to reproduce the installation of this TensorFlow virtual environment on the OzStar system.
 
 If you're working in a local environment with CUDA and Python3 already installed, skip to the [Virtual Environment](#venv_setup) section.
 
@@ -23,11 +23,13 @@ If you're working in a local environment with CUDA and Python3 already installed
     module load nccl/2.9.6                # probably optional
     module load python/3.7.4
 
-### <a href="venv_setup"></a>Virtual Environment
+### <a href="venv_setup"></a>Install Virtual Environment
 
-    python -m venv venv         # we used python3.7
-    source venv/bin/activate    # ensure "which pip" returns "venv/bin/pip"
-    pip install --upgrade pip setuptools wheel    # not required but ideal
+We can install a virtual environment using Python's virtualenv system as follows.
+
+    python -m venv venv                         # we used python3.7.4
+    source venv/bin/activate
+    pip install --upgrade pip setuptools wheel  # check `which pip` path
     pip install -r requirements.txt
     
 #### Add Virtual Environment to Jupyter Notebook Kernels
@@ -51,6 +53,6 @@ After setting up your virtual environment, a symbolic link can be created as fol
     ln -s <installed_dir> <linked_dir>
 
 For example, if you installed a virtual environment in a shared drive (e.g. /fred/oz016/<user> on OzStar)
-and you want to create a link in your home directory where environments are stored in folders named `env/` as below, we might run the following command.
+and you want to create a link in your home directory (or vice versa), we might run the following command:
 
     ln -s /fred/oz016/<user>/project/venv ~/project/venv 
