@@ -71,8 +71,10 @@ def create_dataset(
     batch_size = batch_size_per_replica * num_replicas
 
     # process, shuffle, and batch training data
-    train_data = datasets["train"].map(scale).cache().shuffle(buffer).batch(batch_size).prefetch(tf.data.AUTOTUNE)
+    # train_data = datasets["train"].map(scale).cache().shuffle(buffer).batch(batch_size).prefetch(tf.data.AUTOTUNE)
+    train_data = datasets["train"].map(scale).cache(buffer).batch(batch_size).prefetch(tf.data.AUTOTUNE)
     val_data = datasets["test"].map(scale).batch(batch_size).prefetch(tf.data.AUTOTUNE)
+
     return train_data, val_data
 
 
@@ -90,6 +92,7 @@ def create_model(num_classes: int = 10):
 
 def train(
     n_epochs: int,
+    steps_per_epoch: int,
     num_classes: int,
     train_data: tf.data.Dataset,
     val_data: tf.data.Dataset,
@@ -117,7 +120,7 @@ def train(
     early_stopping_callback = tf.keras.callbacks.EarlyStopping(
         monitor="val_loss",
         min_delta=1e-4,
-        patience=8,
+        patience=20,
         verbose=verbose,
     )
     # define the checkpoint directory to store the checkpoints.
@@ -140,6 +143,7 @@ def train(
     history = model.fit(
         train_data,
         epochs=n_epochs,
+        steps_per_epoch=steps_per_epoch,
         callbacks=callbacks,
         validation_data=val_data,
         verbose=verbose,
@@ -200,31 +204,52 @@ if __name__ == "__main__":
     assert isinstance(args.n_epochs, int) and args.n_epochs > 0
     assert isinstance(args.batch_size_per_replica, int) and args.batch_size_per_replica > 0
 
-    # check available GPU devices
-    logger.debug("Available devices:")
-    for i, device in enumerate(tf.config.list_logical_devices('GPU')):
-        logger.debug(f"({i}) {device}")
-
     # define distribution strategy for multiple workers
     if args.distribute:
-        strategy = tf.distribute.MirroredStrategy()
-        logger.debug(f'Number of devices: {strategy.num_replicas_in_sync}')
+        cluster_resolver = tf.distribute.cluster_resolver.SlurmClusterResolver()
+        # communication_options = tf.distribute.experimental.CommunicationOptions(
+        #     implementation=tf.distribute.experimental.CommunicationImplementation.NCCL
+        # )
+        strategy = tf.distribute.MultiWorkerMirroredStrategy(
+            cluster_resolver=cluster_resolver,
+            # communication_options=communication
+        )
+        task_id = cluster_resolver.task_id
+        num_devices = strategy.num_replicas_in_sync
+        logger.debug(f'Total distributed devices: {num_devices}')
+        logger.debug(f'[task_id: {task_id}] Available devices on node:')
     else:
+        num_devices = 1
+        logger.debug("Available devices:")
         strategy = None
+
+    # check available GPU devices
+    for i, device in enumerate(tf.config.list_logical_devices('GPU')):
+        logger.debug(f"({i}) {device}")
 
     # download dataset
     datasets, info = tfds.load(name="mnist", with_info=True, as_supervised=True, data_dir=args.data_dir)
     num_classes = info.features["label"].num_classes
     train_data, val_data = create_dataset(args.batch_size_per_replica, datasets, strategy)
-    logger.info("Created MNIST dataset")
+        
+    options = tf.data.Options()
+    options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+    # calculate steps per epoch across all workers
+    num_examples =  info.splits['train'].num_examples
+    steps_per_epoch = num_examples // num_devices
+    if num_examples % num_devices != 0:
+        steps_per_epoch += 1
+
+    logger.info(f"Created MNIST dataset [num_examples: {num_examples} | steps_per_epoch: {steps_per_epoch}")
 
     # train model
     logger.info("Training model")
     train(
         n_epochs=args.n_epochs,
+        steps_per_epoch=steps_per_epoch,
         num_classes=num_classes,
-        train_data=train_data,
-        val_data=val_data,
+        train_data=train_data.with_options(options),
+        val_data=val_data.with_options(options),
         strategy=strategy,
         verbose=convert_loglevel(args.loglevel),
     )
