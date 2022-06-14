@@ -20,7 +20,6 @@ If you're working in a local environment with CUDA and Python3 already installed
 
     module load gcc/9.2.0 openmpi/4.0.2
     module load cudnn/8.0.4-cuda-11.0.2
-    module load nccl/2.9.6                # probably optional
     module load python/3.7.4
 
 ### <a href="venv_setup"></a>Install Virtual Environment
